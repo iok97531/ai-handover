@@ -1,0 +1,19 @@
+node_modules/
+out/
+dist/
+data/
+*.db
+
+# Python
+backend/__pycache__/
+backend/.venv/
+*.pyc
+
+# Environment & Secrets
+.env
+.env.local
+.secret_key
+
+# IDE
+.vscode/
+.idea/
