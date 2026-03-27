@@ -1,12 +1,5 @@
 @echo off
-REM Prepare Python backend for distribution
-REM Run this before `npm run build:win`
-
-echo Installing Python dependencies for backend...
-
-cd /d "%~dp0\..\backend"
-
-python -m pip install -r requirements.txt --target .\vendor --upgrade --quiet
-
-echo Backend preparation complete.
-echo You can now run: npm run build:win
+REM Deprecated: use build-backend.bat instead
+REM This script has been replaced by PyInstaller-based bundling.
+echo This script is deprecated. Please use scripts\build-backend.bat instead.
+exit /b 1

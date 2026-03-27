@@ -23,7 +23,7 @@ export function setupTray(mainWindow: BrowserWindow): void {
     }
   ])
 
-  tray.setToolTip('AI Handover')
+  tray.setToolTip('Scope')
   tray.setContextMenu(contextMenu)
 
   tray.on('click', () => {

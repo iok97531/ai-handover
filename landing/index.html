@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scope — 코드가 밖으로 나가지 않는 AI 인수인계</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #060a12;
+      --bg-2:      #0b1120;
+      --bg-3:      #101827;
+      --border:    rgba(255,255,255,0.07);
+      --teal:      #20d9a0;
+      --teal-dim:  rgba(32,217,160,0.12);
+      --teal-glow: rgba(32,217,160,0.25);
+      --amber:     #f5a623;
+      --amber-dim: rgba(245,166,35,0.12);
+      --text:      #dce8f0;
+      --text-2:    #7a93a8;
+      --text-3:    #3d5266;
+      --font-sans: 'Figtree', sans-serif;
+      --font-head: 'Syne', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ─── NOISE OVERLAY ─── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      opacity: 0.4;
+    }
+
+    /* ─── GRID BG ─── */
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 30%, transparent 100%);
+    }
+
+    section, nav, footer { position: relative; z-index: 1; }
+
+    /* ─── NAV ─── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 6vw;
+      height: 64px;
+      background: rgba(6,10,18,0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: var(--font-head);
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      text-decoration: none;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .nav-logo span {
+      color: var(--teal);
+    }
+
+    .nav-links {
+      display: flex; align-items: center; gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-2);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--text); }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 0.5rem 1.25rem;
+      border-radius: 6px;
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--teal);
+      color: #060a12;
+    }
+
+    .btn-primary:hover {
+      background: #2ffab8;
+      box-shadow: 0 0 24px var(--teal-glow);
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover {
+      border-color: rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.04);
+    }
+
+    .btn-large {
+      padding: 0.75rem 2rem;
+      font-size: 1rem;
+      border-radius: 8px;
+    }
+
+    /* ─── HERO ─── */
+    #hero {
+      min-height: 100vh;
+      display: flex; align-items: center;
+      padding: 120px 6vw 80px;
+      gap: 4vw;
+    }
+
+    .hero-left {
+      flex: 1;
+      max-width: 600px;
+    }
+
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px;
+      border: 1px solid rgba(32,217,160,0.3);
+      border-radius: 100px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--teal);
+      margin-bottom: 1.5rem;
+      background: var(--teal-dim);
+    }
+
+    .hero-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--teal);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    h1 {
+      font-family: var(--font-head);
+      font-size: clamp(2.4rem, 4.5vw, 3.8rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      color: #f0f6fc;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 em {
+      font-style: normal;
+      color: var(--teal);
+    }
+
+    .hero-desc {
+      font-size: 1.1rem;
+      color: var(--text-2);
+      line-height: 1.7;
+      margin-bottom: 2.5rem;
+      max-width: 480px;
+    }
+
+    .hero-actions {
+      display: flex; align-items: center; gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .hero-note {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-3);
+      margin-top: 1rem;
+    }
+
+    .hero-right {
+      flex: 1;
+      max-width: 560px;
+    }
+
+    /* ─── TERMINAL WINDOW ─── */
+    .terminal {
+      background: #0c1422;
+      border: 1px solid rgba(32,217,160,0.2);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 60px rgba(32,217,160,0.08), 0 32px 64px rgba(0,0,0,0.5);
+    }
+
+    .terminal-bar {
+      display: flex; align-items: center; gap: 6px;
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .terminal-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+    }
+
+    .terminal-dot:nth-child(1) { background: #ff5f57; }
+    .terminal-dot:nth-child(2) { background: #febc2e; }
+    .terminal-dot:nth-child(3) { background: #28c840; }
+
+    .terminal-title {
+      margin-left: auto; margin-right: auto;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-3);
+    }
+
+    .terminal-body {
+      padding: 20px;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      line-height: 1.8;
+      min-height: 280px;
+    }
+
+    .t-prompt { color: var(--teal); }
+    .t-cmd { color: var(--text); }
+    .t-out { color: var(--text-2); }
+    .t-success { color: var(--teal); }
+    .t-warn { color: var(--amber); }
+    .t-dim { color: var(--text-3); }
+
+    .cursor {
+      display: inline-block;
+      width: 8px; height: 14px;
+      background: var(--teal);
+      vertical-align: middle;
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+    /* typing animation lines */
+    .t-line { opacity: 0; animation: fadeIn 0.3s forwards; }
+    .t-line:nth-child(1)  { animation-delay: 0.3s; }
+    .t-line:nth-child(2)  { animation-delay: 0.8s; }
+    .t-line:nth-child(3)  { animation-delay: 1.3s; }
+    .t-line:nth-child(4)  { animation-delay: 1.8s; }
+    .t-line:nth-child(5)  { animation-delay: 2.3s; }
+    .t-line:nth-child(6)  { animation-delay: 2.8s; }
+    .t-line:nth-child(7)  { animation-delay: 3.3s; }
+    .t-line:nth-child(8)  { animation-delay: 3.8s; }
+    .t-line:nth-child(9)  { animation-delay: 4.2s; }
+    .t-line:nth-child(10) { animation-delay: 4.6s; }
+
+    @keyframes fadeIn { to { opacity: 1; } }
+
+    /* ─── SECTION BASE ─── */
+    section { padding: 100px 6vw; }
+
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 1rem;
+    }
+
+    h2 {
+      font-family: var(--font-head);
+      font-size: clamp(1.8rem, 3vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      color: #f0f6fc;
+      margin-bottom: 1.25rem;
+    }
+
+    .section-desc {
+      font-size: 1.05rem;
+      color: var(--text-2);
+      max-width: 540px;
+      line-height: 1.7;
+    }
+
+    /* ─── PROBLEM ─── */
+    #problem {
+      background: var(--bg-2);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .problem-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1px;
+      margin-top: 3rem;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .problem-item {
+      background: var(--bg-2);
+      padding: 2rem;
+      transition: background 0.2s;
+    }
+
+    .problem-item:hover { background: var(--bg-3); }
+
+    .problem-icon {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+      display: block;
+    }
+
+    .problem-item h3 {
+      font-family: var(--font-head);
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+
+    .problem-item p {
+      font-size: 0.875rem;
+      color: var(--text-2);
+      line-height: 1.6;
+    }
+
+    /* ─── HOW IT WORKS ─── */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      margin-top: 3.5rem;
+      position: relative;
+    }
+
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 28px; left: calc(16.66% + 1rem); right: calc(16.66% + 1rem);
+      height: 1px;
+      background: linear-gradient(90deg, var(--teal), var(--teal-dim), var(--teal));
+      opacity: 0.3;
+    }
+
+    .step {
+      display: flex; flex-direction: column; align-items: flex-start;
+      padding: 2rem;
+      position: relative;
+    }
+
+    .step-num {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      border: 1px solid rgba(32,217,160,0.3);
+      background: var(--teal-dim);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--teal);
+      margin-bottom: 1.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .step h3 {
+      font-family: var(--font-head);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.6rem;
+    }
+
+    .step p {
+      font-size: 0.875rem;
+      color: var(--text-2);
+      line-height: 1.65;
+    }
+
+    /* ─── FEATURES ─── */
+    #features { background: var(--bg); }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 3rem;
+    }
+
+    .feature-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.75rem;
+      transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+    }
+
+    .feature-card:hover {
+      border-color: rgba(32,217,160,0.25);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.3), 0 0 0 1px rgba(32,217,160,0.1);
+    }
+
+    .feature-icon {
+      width: 40px; height: 40px;
+      border-radius: 8px;
+      background: var(--teal-dim);
+      border: 1px solid rgba(32,217,160,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .feature-card h3 {
+      font-family: var(--font-head);
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-card p {
+      font-size: 0.85rem;
+      color: var(--text-2);
+      line-height: 1.65;
+    }
+
+    /* ─── SECURITY CALLOUT ─── */
+    #security {
+      background: linear-gradient(135deg, #071a12 0%, #060a12 50%, #0a0e1a 100%);
+      border-top: 1px solid rgba(32,217,160,0.15);
+      border-bottom: 1px solid rgba(32,217,160,0.15);
+      text-align: center;
+    }
+
+    .security-quote {
+      font-family: var(--font-head);
+      font-size: clamp(1.6rem, 3.5vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+      color: #f0f6fc;
+      max-width: 820px;
+      margin: 0 auto 2rem;
+    }
+
+    .security-quote strong {
+      color: var(--teal);
+    }
+
+    .security-chips {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem;
+      margin-top: 2.5rem;
+    }
+
+    .chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px;
+      border-radius: 100px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .chip-teal {
+      background: var(--teal-dim);
+      border: 1px solid rgba(32,217,160,0.25);
+      color: var(--teal);
+    }
+
+    .chip-amber {
+      background: var(--amber-dim);
+      border: 1px solid rgba(245,166,35,0.25);
+      color: var(--amber);
+    }
+
+    /* ─── PRICING ─── */
+    #pricing { background: var(--bg-2); }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-top: 3rem;
+      align-items: start;
+    }
+
+    .price-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      position: relative;
+      transition: border-color 0.25s, transform 0.25s;
+    }
+
+    .price-card:hover { transform: translateY(-4px); }
+
+    .price-card.featured {
+      border-color: rgba(32,217,160,0.4);
+      box-shadow: 0 0 40px rgba(32,217,160,0.08);
+    }
+
+    .price-badge {
+      position: absolute;
+      top: -12px; left: 50%; transform: translateX(-50%);
+      background: var(--teal);
+      color: #060a12;
+      font-size: 0.72rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      padding: 3px 12px;
+      border-radius: 100px;
+      letter-spacing: 0.05em;
+    }
+
+    .price-plan {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 0.75rem;
+    }
+
+    .price-amount {
+      font-family: var(--font-mono);
+      font-size: 2.6rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #f0f6fc;
+      line-height: 1;
+      margin-bottom: 0.25rem;
+    }
+
+    .price-amount sup {
+      font-size: 1rem;
+      vertical-align: super;
+      font-weight: 500;
+      color: var(--teal);
+      font-family: var(--font-mono);
+    }
+
+    .price-amount span {
+      font-size: 0.82rem;
+      font-weight: 400;
+      color: var(--text-2);
+      font-family: var(--font-mono);
+    }
+
+    .price-desc {
+      font-size: 0.85rem;
+      color: var(--text-2);
+      margin-bottom: 1.75rem;
+      line-height: 1.5;
+    }
+
+    .price-divider {
+      height: 1px;
+      background: var(--border);
+      margin-bottom: 1.5rem;
+    }
+
+    .price-features {
+      list-style: none;
+      display: flex; flex-direction: column; gap: 0.7rem;
+      margin-bottom: 2rem;
+    }
+
+    .price-features li {
+      display: flex; align-items: flex-start; gap: 8px;
+      font-size: 0.85rem;
+      color: var(--text-2);
+      line-height: 1.5;
+    }
+
+    .price-features li::before {
+      content: '✓';
+      color: var(--teal);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .price-features li.muted {
+      color: var(--text-3);
+    }
+
+    .price-features li.muted::before { color: var(--text-3); }
+
+    .btn-outline-teal {
+      background: transparent;
+      border: 1px solid rgba(32,217,160,0.4);
+      color: var(--teal);
+      width: 100%;
+      justify-content: center;
+      padding: 0.65rem 1rem;
+    }
+
+    .btn-outline-teal:hover {
+      background: var(--teal-dim);
+      border-color: var(--teal);
+    }
+
+    .btn-enterprise {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-2);
+      width: 100%;
+      justify-content: center;
+      padding: 0.65rem 1rem;
+    }
+
+    .btn-enterprise:hover {
+      border-color: rgba(255,255,255,0.2);
+      color: var(--text);
+      background: rgba(255,255,255,0.03);
+    }
+
+    /* ─── ENTERPRISE ─── */
+    #enterprise {
+      background: var(--bg);
+    }
+
+    .enterprise-box {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3.5rem;
+      margin-top: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .enterprise-box::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 240px; height: 240px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(32,217,160,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .enterprise-targets {
+      display: flex; flex-direction: column; gap: 0.75rem;
+    }
+
+    .target-item {
+      display: flex; align-items: center; gap: 1rem;
+      padding: 0.875rem 1.25rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      transition: border-color 0.2s;
+    }
+
+    .target-item:hover { border-color: rgba(32,217,160,0.2); }
+
+    .target-icon { font-size: 1.2rem; }
+
+    .target-item h4 {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+
+    .target-item p {
+      font-size: 0.78rem;
+      color: var(--text-2);
+    }
+
+    /* ─── CTA ─── */
+    #cta {
+      text-align: center;
+      background: var(--bg-2);
+      border-top: 1px solid var(--border);
+    }
+
+    #cta h2 { margin: 0 auto 1rem; }
+
+    #cta .section-desc {
+      margin: 0 auto 2.5rem;
+      text-align: center;
+    }
+
+    .cta-actions {
+      display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      padding: 2.5rem 6vw;
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .footer-logo {
+      font-family: var(--font-head);
+      font-weight: 800;
+      font-size: 1rem;
+      color: var(--text-2);
+    }
+
+    .footer-logo span { color: var(--teal); }
+
+    .footer-note {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-3);
+    }
+
+    /* ─── REVEAL ANIMATION ─── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+    .reveal-delay-4 { transition-delay: 0.4s; }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 900px) {
+      #hero { flex-direction: column; padding-top: 100px; }
+      .hero-right { width: 100%; max-width: 100%; }
+      .pricing-grid { grid-template-columns: 1fr; max-width: 400px; margin-left: auto; margin-right: auto; }
+      .steps { grid-template-columns: 1fr; }
+      .steps::before { display: none; }
+      .enterprise-box { grid-template-columns: 1fr; gap: 2rem; padding: 2rem; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── NAV ─── -->
+<nav>
+  <a href="#" class="nav-logo">Sc<span>ope</span></a>
+  <ul class="nav-links">
+    <li><a href="#how">작동 방식</a></li>
+    <li><a href="#features">기능</a></li>
+    <li><a href="#pricing">요금제</a></li>
+    <li><a href="#enterprise">엔터프라이즈</a></li>
+  </ul>
+  <a href="#" class="btn btn-primary">무료 다운로드</a>
+</nav>
+
+<!-- ─── HERO ─── -->
+<section id="hero">
+  <div class="hero-left">
+    <div class="hero-badge">v1.0 — Windows 지원</div>
+    <h1>코드 인수인계,<br /><em>AI가 대신합니다</em></h1>
+    <p class="hero-desc">
+      새 프로젝트를 받을 때마다 반복되는 고통을 끝내세요.
+      Scope는 코드베이스를 분석해 개발자 온보딩부터 운영 가이드까지
+      대화하듯 설명해드립니다.
+    </p>
+    <div class="hero-actions">
+      <a href="#" class="btn btn-primary btn-large">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v9M4 7l4 4 4-4M2 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        무료 다운로드
+      </a>
+      <a href="#how" class="btn btn-ghost btn-large">작동 방식 보기</a>
+    </div>
+    <p class="hero-note">// Windows 10+ · Python 불필요 · 완전 로컬 처리</p>
+  </div>
+
+  <div class="hero-right">
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <div class="terminal-dot"></div>
+        <span class="terminal-title">scope — bash</span>
+      </div>
+      <div class="terminal-body">
+        <div class="t-line"><span class="t-prompt">→</span> <span class="t-cmd">프로젝트 선택: ./legacy-payment-system</span></div>
+        <div class="t-line"><span class="t-out">  파일 스캔 중... 847개 파일 발견</span></div>
+        <div class="t-line"><span class="t-out">  임베딩 생성 중... <span class="t-success">완료 ✓</span></span></div>
+        <div class="t-line">&nbsp;</div>
+        <div class="t-line"><span class="t-prompt">→</span> <span class="t-cmd">인수인계 받기 → 개발자 온보딩</span></div>
+        <div class="t-line">&nbsp;</div>
+        <div class="t-line"><span class="t-success">AI</span> <span class="t-out">이 프로젝트는 2019년부터 운영된 결제 처리 시스템이에요.</span></div>
+        <div class="t-line"><span class="t-out">    Spring Boot 2.7 기반이고, 핵심 로직은</span></div>
+        <div class="t-line"><span class="t-out">    <span class="t-warn">PaymentService.java</span>에 집중되어 있어요.</span></div>
+        <div class="t-line"><span class="t-out">    배포 전 꼭 알아야 할 점이 있는데... <span class="cursor"></span></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── PROBLEM ─── -->
+<section id="problem">
+  <div class="section-label">// 문제</div>
+  <h2>인수인계, 이렇게 힘드셨죠?</h2>
+  <p class="section-desc">
+    개발자의 시간 중 상당 부분이 "이 코드가 뭐하는 건지 파악하기"에 낭비됩니다.
+  </p>
+  <div class="problem-grid reveal">
+    <div class="problem-item">
+      <span class="problem-icon">📄</span>
+      <h3>문서가 없거나 오래됐다</h3>
+      <p>3년 된 README, 이미 바뀐 아키텍처 다이어그램. 믿을 수 있는 문서가 없다.</p>
+    </div>
+    <div class="problem-item">
+      <span class="problem-icon">🏃</span>
+      <h3>담당자는 이미 퇴사했다</h3>
+      <p>물어볼 사람이 없다. 코드를 한 줄씩 읽으며 파악하는 수밖에 없다.</p>
+    </div>
+    <div class="problem-item">
+      <span class="problem-icon">🔒</span>
+      <h3>코드를 외부에 올릴 수 없다</h3>
+      <p>ChatGPT에 붙여넣기? 보안 정책상 불가. 결국 혼자 해결해야 한다.</p>
+    </div>
+    <div class="problem-item">
+      <span class="problem-icon">⏰</span>
+      <h3>온보딩에 몇 주가 걸린다</h3>
+      <p>새 팀원이 첫 PR을 올리기까지 2~4주. 그 시간이 모두 비용이다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─── HOW IT WORKS ─── -->
+<section id="how">
+  <div class="section-label">// 작동 방식</div>
+  <h2>3단계로 끝납니다</h2>
+  <p class="section-desc">설치하고, 폴더를 열고, 질문하면 됩니다.</p>
+  <div class="steps">
+    <div class="step reveal">
+      <div class="step-num">01</div>
+      <h3>폴더 선택 & 인덱싱</h3>
+      <p>프로젝트 폴더를 선택하면 코드를 자동으로 분석해 로컬에 인덱싱합니다. 코드는 외부로 나가지 않습니다.</p>
+    </div>
+    <div class="step reveal reveal-delay-1">
+      <div class="step-num">02</div>
+      <h3>인수인계 형식 선택</h3>
+      <p>전체 요약, 개발자 온보딩, 운영·배포 가이드, 이슈 현황 중 필요한 형식을 선택합니다.</p>
+    </div>
+    <div class="step reveal reveal-delay-2">
+      <div class="step-num">03</div>
+      <h3>AI와 대화로 파악</h3>
+      <p>AI가 코드 기반으로 설명해주고, 추가 질문도 자유롭게 할 수 있습니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─── FEATURES ─── -->
+<section id="features">
+  <div class="section-label">// 기능</div>
+  <h2>필요한 건 다 있습니다</h2>
+  <div class="features-grid">
+    <div class="feature-card reveal">
+      <div class="feature-icon">🔐</div>
+      <h3>완전 로컬 처리</h3>
+      <p>코드가 우리 서버로 전송되지 않습니다. 인덱싱과 검색은 모두 로컬에서 처리됩니다.</p>
+    </div>
+    <div class="feature-card reveal reveal-delay-1">
+      <div class="feature-icon">🤖</div>
+      <h3>4가지 인수인계 형식</h3>
+      <p>전체 요약 / 개발자 온보딩 / 운영·배포 가이드 / 이슈·기술 부채 현황. 목적에 맞게 선택하세요.</p>
+    </div>
+    <div class="feature-card reveal reveal-delay-2">
+      <div class="feature-icon">💬</div>
+      <h3>대화형 Q&A</h3>
+      <p>인수인계 후에도 "이 함수가 뭐해요?", "왜 이렇게 짰어요?" 같은 질문을 자유롭게 할 수 있습니다.</p>
+    </div>
+    <div class="feature-card reveal reveal-delay-3">
+      <div class="feature-icon">👁️</div>
+      <h3>파일 변경 자동 감지</h3>
+      <p>코드가 바뀌면 자동으로 인덱스를 업데이트합니다. 항상 최신 코드 기준으로 답변합니다.</p>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">🔌</div>
+      <h3>OpenAI & Claude 지원</h3>
+      <p>OpenAI GPT-4o, Claude Sonnet 등 주요 AI 모델을 지원합니다. 본인 API 키를 사용합니다.</p>
+    </div>
+    <div class="feature-card reveal reveal-delay-1">
+      <div class="feature-icon">📂</div>
+      <h3>다양한 언어 지원</h3>
+      <p>Python, TypeScript, Java, Go, Rust 등 40+ 언어와 파일 형식을 지원합니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─── SECURITY ─── -->
+<section id="security">
+  <div class="section-label">// 보안</div>
+  <p class="security-quote reveal">
+    <strong>소스코드가 회사 밖으로<br />한 줄도 나가지 않습니다</strong>
+  </p>
+  <p class="section-desc" style="margin: 0 auto; text-align: center;" class="reveal">
+    코드 인덱싱과 검색은 100% 로컬에서 처리됩니다. AI 질의 시에는 선택한 API(OpenAI/Claude)로만 전송되며, 우리 서버는 코드를 저장하거나 열람하지 않습니다.
+  </p>
+  <div class="security-chips reveal">
+    <span class="chip chip-teal">✓ 코드 서버 저장 없음</span>
+    <span class="chip chip-teal">✓ 로컬 ChromaDB 벡터 저장</span>
+    <span class="chip chip-teal">✓ 암호화된 API 키 저장</span>
+    <span class="chip chip-amber">⊕ Enterprise: 완전 오프라인 지원</span>
+    <span class="chip chip-amber">⊕ 사내 LLM 서버 연동</span>
+  </div>
+</section>
+
+<!-- ─── PRICING ─── -->
+<section id="pricing">
+  <div class="section-label">// 요금제</div>
+  <h2>팀 규모에 맞게 선택하세요</h2>
+  <div class="pricing-grid">
+
+    <!-- Free -->
+    <div class="price-card reveal">
+      <div class="price-plan">Free</div>
+      <div class="price-amount">$0</div>
+      <p class="price-desc">개인 개발자를 위한 무료 플랜.<br />본인 API 키로 즉시 시작하세요.</p>
+      <div class="price-divider"></div>
+      <ul class="price-features">
+        <li>프로젝트 1개</li>
+        <li>4가지 인수인계 형식</li>
+        <li>대화형 Q&A</li>
+        <li>파일 변경 자동 감지</li>
+        <li class="muted">팀 공유 기능</li>
+        <li class="muted">히스토리 클라우드 저장</li>
+      </ul>
+      <a href="#" class="btn btn-outline-teal">무료 다운로드</a>
+    </div>
+
+    <!-- Pro -->
+    <div class="price-card featured reveal reveal-delay-1">
+      <div class="price-badge">추천</div>
+      <div class="price-plan">Pro</div>
+      <div class="price-amount"><sup>$</sup>19<span>/월</span></div>
+      <p class="price-desc">성장하는 팀을 위한 협업 플랜.<br />무제한 프로젝트와 팀 공유.</p>
+      <div class="price-divider"></div>
+      <ul class="price-features">
+        <li>무제한 프로젝트</li>
+        <li>4가지 인수인계 형식</li>
+        <li>대화형 Q&A</li>
+        <li>파일 변경 자동 감지</li>
+        <li>인수인계 문서 공유 링크</li>
+        <li>팀 히스토리 공유</li>
+      </ul>
+      <a href="#" class="btn btn-primary" style="width:100%;justify-content:center;padding:0.65rem 1rem;">시작하기</a>
+    </div>
+
+    <!-- Enterprise -->
+    <div class="price-card reveal reveal-delay-2">
+      <div class="price-plan">Enterprise</div>
+      <div class="price-amount" style="font-size:1.8rem;line-height:1.3;">협의</div>
+      <p class="price-desc">보안이 최우선인 조직을 위한<br />완전 오프라인 플랜.</p>
+      <div class="price-divider"></div>
+      <ul class="price-features">
+        <li>Pro 플랜 모든 기능</li>
+        <li>완전 오프라인 동작</li>
+        <li>사내 LLM 서버 연동</li>
+        <li>온프레미스 설치</li>
+        <li>연간 오프라인 라이선스 키</li>
+        <li>보안 감사 대응</li>
+      </ul>
+      <a href="mailto:contact@getscope.dev" class="btn btn-enterprise">문의하기</a>
+    </div>
+
+  </div>
+</section>
+
+<!-- ─── ENTERPRISE ─── -->
+<section id="enterprise">
+  <div class="section-label">// 엔터프라이즈</div>
+  <h2>보안이 최우선인 조직을 위해</h2>
+  <div class="enterprise-box reveal">
+    <div>
+      <p style="font-size:1.05rem;color:var(--text-2);line-height:1.7;margin-bottom:1.5rem;">
+        금융, 의료, 공공, 방산 등 규제 환경에서는 소스코드를 외부 API로 보내는 것 자체가 불가능합니다. Enterprise 플랜은 코드와 데이터가 사내 네트워크 밖으로 나가지 않는 완전 오프라인 환경을 지원합니다.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:0.75rem;margin-bottom:2rem;">
+        <div style="display:flex;align-items:center;gap:8px;font-size:0.875rem;color:var(--text-2);">
+          <span style="color:var(--teal);font-weight:700;">✓</span> Ollama, vLLM, LM Studio 연동
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:0.875rem;color:var(--text-2);">
+          <span style="color:var(--teal);font-weight:700;">✓</span> Azure OpenAI Private Endpoint 지원
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:0.875rem;color:var(--text-2);">
+          <span style="color:var(--teal);font-weight:700;">✓</span> 연간 오프라인 라이선스 키 (인터넷 불필요)
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:0.875rem;color:var(--text-2);">
+          <span style="color:var(--teal);font-weight:700;">✓</span> 시트 라이선스 (카피당 과금)
+        </div>
+      </div>
+      <a href="mailto:contact@getscope.dev" class="btn btn-primary btn-large">엔터프라이즈 문의</a>
+    </div>
+    <div class="enterprise-targets">
+      <div class="target-item">
+        <span class="target-icon">🏦</span>
+        <div>
+          <h4>금융 · 의료 · 공공기관</h4>
+          <p>외부 API 사용 규제, 데이터 주권 요건</p>
+        </div>
+      </div>
+      <div class="target-item">
+        <span class="target-icon">🏗️</span>
+        <div>
+          <h4>대형 SI · IT 서비스사</h4>
+          <p>고객사 코드 외부 유출 금지 계약</p>
+        </div>
+      </div>
+      <div class="target-item">
+        <span class="target-icon">🛡️</span>
+        <div>
+          <h4>제조 · 방산</h4>
+          <p>인터넷 차단 환경, 사내 LLM 운영 중</p>
+        </div>
+      </div>
+      <div class="target-item">
+        <span class="target-icon">🚀</span>
+        <div>
+          <h4>스타트업 · IT 기업</h4>
+          <p>빠른 온보딩, 팀 지식 공유 자동화</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── CTA ─── -->
+<section id="cta">
+  <div class="section-label" style="text-align:center;">// 시작하기</div>
+  <h2>지금 바로 무료로 시작하세요</h2>
+  <p class="section-desc">설치 후 5분 안에 첫 인수인계를 받을 수 있습니다.<br />신용카드 불필요.</p>
+  <div class="cta-actions">
+    <a href="#" class="btn btn-primary btn-large">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1v9M4 7l4 4 4-4M2 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      무료 다운로드
+    </a>
+    <a href="mailto:contact@getscope.dev" class="btn btn-ghost btn-large">엔터프라이즈 문의</a>
+  </div>
+</section>
+
+<!-- ─── FOOTER ─── -->
+<footer>
+  <div class="footer-logo">Sc<span>ope</span></div>
+  <div class="footer-note">// 소스코드가 회사 밖으로 한 줄도 나가지 않습니다</div>
+  <div class="footer-note">© 2025 Scope. MIT License.</div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

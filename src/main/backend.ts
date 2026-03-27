@@ -43,18 +43,32 @@ function ensureDependencies(backendDir: string): void {
 }
 
 export async function startBackend(): Promise<void> {
-  const backendDir = is.dev
-    ? join(__dirname, '../../backend')
-    : join(process.resourcesPath, 'backend')
+  let cmd: string
+  let args: string[]
+  let cwd: string
 
-  ensureDependencies(backendDir)
+  if (is.dev) {
+    const backendDir = join(__dirname, '../../backend')
+    ensureDependencies(backendDir)
+    cmd = getPythonCmd()
+    args = ['-m', 'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', String(BACKEND_PORT)]
+    cwd = backendDir
+  } else {
+    const backendDir = join(process.resourcesPath, 'backend')
+    const exeName = process.platform === 'win32' ? 'backend.exe' : 'backend'
+    cmd = join(backendDir, exeName)
+    args = ['--host', '127.0.0.1', '--port', String(BACKEND_PORT)]
+    cwd = backendDir
+  }
 
-  backendProcess = spawn(getPythonCmd(), ['-m', 'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', String(BACKEND_PORT)], {
-    cwd: backendDir,
+  backendProcess = spawn(cmd, args, {
+    cwd,
     env: {
       ...process.env,
       DATA_DIR: join(app.getPath('userData'), 'data'),
-      PYTHONUNBUFFERED: '1'
+      PYTHONUNBUFFERED: '1',
+      // Ensure DLLs next to the exe are found (onedir mode)
+      PATH: `${cwd}${process.platform === 'win32' ? ';' : ':'}${process.env.PATH ?? ''}`
     },
     stdio: ['ignore', 'pipe', 'pipe']
   })

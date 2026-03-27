@@ -34,7 +34,7 @@ async def lifespan(app: FastAPI):
     await close_db()
 
 
-app = FastAPI(title="AI Handover Backend", lifespan=lifespan)
+app = FastAPI(title="Scope Backend", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -56,5 +56,12 @@ async def health():
 
 
 if __name__ == "__main__":
+    import argparse
     import uvicorn
-    uvicorn.run("main:app", host=HOST, port=PORT, reload=True)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--host', default=HOST)
+    parser.add_argument('--port', type=int, default=PORT)
+    args = parser.parse_args()
+
+    uvicorn.run(app, host=args.host, port=args.port)

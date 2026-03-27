@@ -7,7 +7,7 @@ You answer questions based on the project's source code and documentation.
 Always cite the specific file paths when referencing code.
 If you are unsure or the retrieved context does not contain enough information,
 say so honestly rather than guessing.
-Answer in the same language as the user's question."""
+Always answer in Korean using polite formal speech (존댓말, -습니다/-요 style)."""
 
 
 class RAGService:

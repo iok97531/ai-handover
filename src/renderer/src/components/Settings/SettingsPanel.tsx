@@ -8,6 +8,22 @@ interface SettingsPanelProps {
   onClose: () => void
 }
 
+type ModelOption = { id: string; label: string; recommended?: string }
+
+const MODEL_OPTIONS: Record<'openai' | 'claude', ModelOption[]> = {
+  openai: [
+    { id: 'gpt-4o',      label: 'GPT-4o',      recommended: '추천 · 성능/비용 균형' },
+    { id: 'gpt-4o-mini', label: 'GPT-4o mini', recommended: '추천 · 저비용' },
+    { id: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+    { id: 'o1-mini',     label: 'o1-mini' },
+  ],
+  claude: [
+    { id: 'claude-opus-4-6',          label: 'Claude Opus 4' },
+    { id: 'claude-sonnet-4-6',        label: 'Claude Sonnet 4',  recommended: '추천 · 성능/비용 균형' },
+    { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5', recommended: '추천 · 저비용·빠름' },
+  ],
+}
+
 export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   const [settings, setSettings] = useState<AppSettings>({
     ai_provider: 'openai',
@@ -31,7 +47,8 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   }, [open])
 
   const handleProviderChange = (provider: 'openai' | 'claude') => {
-    setSettings({ ...settings, ai_provider: provider })
+    const defaultModel = MODEL_OPTIONS[provider].find((m) => m.recommended)?.id ?? ''
+    setSettings({ ...settings, ai_provider: provider, chat_model: defaultModel })
     setShowReindexWarning(provider !== originalProvider.current)
   }
 
@@ -57,6 +74,8 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   }
 
   if (!open) return null
+
+  const modelOptions = MODEL_OPTIONS[settings.ai_provider as 'openai' | 'claude'] ?? []
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -99,20 +118,27 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm text-slate-300">채팅 모델 (선택)</label>
-            <input
-              type="text"
+            <label className="mb-1 block text-sm text-slate-300">채팅 모델</label>
+            <select
               value={settings.chat_model || ''}
               onChange={(e) => setSettings({ ...settings, chat_model: e.target.value })}
-              placeholder={settings.ai_provider === 'openai' ? 'gpt-4o' : 'claude-sonnet-4-20250514'}
-              className="w-full rounded-lg bg-slate-700 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none"
-            />
+              className="w-full rounded-lg bg-slate-700 px-3 py-2 text-sm text-white outline-none"
+            >
+              {modelOptions.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.label}{m.recommended ? `  ✦ ${m.recommended}` : ''}
+                </option>
+              ))}
+            </select>
+            {modelOptions.find((m) => m.id === settings.chat_model)?.recommended && (
+              <p className="mt-1 text-xs text-blue-400">
+                ✦ {modelOptions.find((m) => m.id === settings.chat_model)!.recommended}
+              </p>
+            )}
           </div>
 
           {message && (
-            <p
-              className={`text-sm ${message.startsWith('오류') ? 'text-red-400' : 'text-green-400'}`}
-            >
+            <p className={`text-sm ${message.startsWith('오류') ? 'text-red-400' : 'text-green-400'}`}>
               {message}
             </p>
           )}

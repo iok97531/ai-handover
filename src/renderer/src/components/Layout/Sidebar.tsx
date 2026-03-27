@@ -25,7 +25,7 @@ export default function Sidebar({ onOpenSettings }: SidebarProps) {
   return (
     <div className="flex h-full w-64 flex-col border-r border-slate-700 bg-slate-900">
       <div className="flex items-center justify-between border-b border-slate-700 p-4">
-        <h1 className="text-lg font-bold text-white">AI Handover</h1>
+        <h1 className="text-lg font-bold text-white">Scope</h1>
         <button
           onClick={onOpenSettings}
           className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white"

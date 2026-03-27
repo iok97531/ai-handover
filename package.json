@@ -1,7 +1,7 @@
 {
-  "name": "ai-handover",
+  "name": "scope",
   "version": "1.0.0",
-  "description": "AI-powered project handover assistant",
+  "description": "AI-powered codebase assistant",
   "main": "./out/main/index.js",
   "author": "",
   "license": "MIT",
@@ -11,7 +11,9 @@
     "preview": "electron-vite preview",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "npm run build && electron-builder --win"
+    "build:win": "npm run build && electron-builder --win",
+    "build:backend": "cd backend && python -m PyInstaller backend.spec --distpath dist --workpath build/pyinstaller --clean",
+    "build:full": "npm run build:backend && npm run build:win"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.1",
@@ -20,8 +22,8 @@
     "remark-gfm": "^4.0.1"
   },
   "build": {
-    "appId": "com.ai-handover.app",
-    "productName": "AI Handover",
+    "appId": "com.scope.app",
+    "productName": "Scope",
     "directories": {
       "buildResources": "build"
     },
@@ -30,16 +32,9 @@
     ],
     "extraResources": [
       {
-        "from": "backend",
+        "from": "backend/dist/backend",
         "to": "backend",
-        "filter": [
-          "**/*.py",
-          "pyproject.toml",
-          "!__pycache__/**",
-          "!.venv/**",
-          "!tests/**",
-          "!.pytest_cache/**"
-        ]
+        "filter": ["**/*"]
       }
     ],
     "win": {
