@@ -2,6 +2,7 @@ import uuid
 from fastapi import APIRouter, HTTPException
 from models.database import get_db
 from models.schemas import ProjectCreate, ProjectResponse
+from config import FREE_PLAN_MAX_PROJECTS
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -19,6 +20,15 @@ async def list_projects():
 @router.post("", response_model=ProjectResponse)
 async def create_project(data: ProjectCreate):
     db = await get_db()
+
+    # Check free plan project limit
+    cursor = await db.execute("SELECT COUNT(*) FROM projects")
+    count = (await cursor.fetchone())[0]
+    if count >= FREE_PLAN_MAX_PROJECTS:
+        raise HTTPException(
+            403,
+            f"무료 플랜은 프로젝트를 {FREE_PLAN_MAX_PROJECTS}개까지만 등록할 수 있습니다.",
+        )
 
     # Check duplicate
     cursor = await db.execute("SELECT id FROM projects WHERE folder_path = ?", (data.folder_path,))

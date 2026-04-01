@@ -20,6 +20,7 @@ class ChatRequest(BaseModel):
     project_id: str
     question: str
     chat_history: list[dict] = []
+    include_git_history: bool = False
 
 
 class IndexStatusResponse(BaseModel):

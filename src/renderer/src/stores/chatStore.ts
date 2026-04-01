@@ -6,7 +6,7 @@ interface ChatState {
   messages: Record<string, ChatMessage[]> // projectId -> messages
   streaming: boolean
 
-  sendMessage: (projectId: string, question: string, hiddenInstruction?: string) => Promise<void>
+  sendMessage: (projectId: string, question: string, hiddenInstruction?: string, includeGitHistory?: boolean) => Promise<void>
   clearMessages: (projectId: string) => void
 }
 
@@ -18,7 +18,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   messages: {},
   streaming: false,
 
-  sendMessage: async (projectId, question, hiddenInstruction) => {
+  sendMessage: async (projectId, question, hiddenInstruction, includeGitHistory) => {
     const userMsg: ChatMessage = {
       id: createMessageId(),
       role: 'user',
@@ -44,7 +44,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       const history = get().messages[projectId]?.slice(0, -1) || []
       const apiQuestion = hiddenInstruction ? `${question}\n\n${hiddenInstruction}` : question
-      for await (const token of streamChat(projectId, apiQuestion, history)) {
+      for await (const token of streamChat(projectId, apiQuestion, history, includeGitHistory)) {
         set((state) => {
           const msgs = [...(state.messages[projectId] || [])]
           const lastMsg = msgs[msgs.length - 1]

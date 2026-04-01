@@ -42,10 +42,10 @@ export default function ChatPanel() {
     }
   }
 
-  const handleHandover = (display: string, instruction: string) => {
+  const handleHandover = (display: string, instruction: string, opts?: { includeGitHistory?: boolean }) => {
     setShowWelcome(false)
     if (!streaming && isReady) {
-      sendMessage(selectedProjectId, display, instruction)
+      sendMessage(selectedProjectId, display, instruction, opts?.includeGitHistory)
     }
   }
 

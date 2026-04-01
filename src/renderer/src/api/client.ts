@@ -52,7 +52,8 @@ export async function getIndexStatus(projectId: string): Promise<IndexStatus> {
 export async function* streamChat(
   projectId: string,
   question: string,
-  chatHistory: ChatMessage[]
+  chatHistory: ChatMessage[],
+  includeGitHistory?: boolean
 ): AsyncGenerator<string> {
   const response = await fetch(`${BASE_URL}/api/chat`, {
     method: 'POST',
@@ -60,7 +61,8 @@ export async function* streamChat(
     body: JSON.stringify({
       project_id: projectId,
       question,
-      chat_history: chatHistory.map((m) => ({ role: m.role, content: m.content }))
+      chat_history: chatHistory.map((m) => ({ role: m.role, content: m.content })),
+      include_git_history: includeGitHistory ?? false
     })
   })
 

@@ -10,12 +10,17 @@ router = APIRouter(prefix="/api/chat", tags=["chat"])
 @router.post("")
 async def chat(request: ChatRequest):
     db = await get_db()
-    cursor = await db.execute("SELECT id, status FROM projects WHERE id = ?", (request.project_id,))
+    cursor = await db.execute("SELECT id, status, folder_path FROM projects WHERE id = ?", (request.project_id,))
     row = await cursor.fetchone()
     if not row:
         raise HTTPException(404, "프로젝트를 찾을 수 없습니다.")
     if row["status"] != "ready":
         raise HTTPException(400, "프로젝트 인덱싱이 아직 완료되지 않았습니다.")
+
+    git_context: str | None = None
+    if request.include_git_history:
+        from services.git_service import get_git_context
+        git_context = get_git_context(row["folder_path"]) or None
 
     from services.rag import RAGService
     rag = await RAGService.create()
@@ -26,6 +31,7 @@ async def chat(request: ChatRequest):
                 project_id=request.project_id,
                 question=request.question,
                 chat_history=request.chat_history,
+                git_context=git_context,
             ):
                 yield {"data": json.dumps({"token": token})}
             yield {"data": "[DONE]"}

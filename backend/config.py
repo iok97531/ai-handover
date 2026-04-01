@@ -22,6 +22,9 @@ CHUNK_OVERLAP = 200
 EMBEDDING_BATCH_SIZE = 50
 MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024  # 1MB
 
+# Plan limits
+FREE_PLAN_MAX_PROJECTS = 1
+
 EXCLUDED_DIRS = {
     ".git", "node_modules", "__pycache__", ".venv", "venv",
     "dist", "build", ".next", "target", ".idea", ".vscode",

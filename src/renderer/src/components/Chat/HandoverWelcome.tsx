@@ -11,6 +11,7 @@ interface HandoverFormat {
   desc: string
   display: string
   instruction: string
+  includeGitHistory?: boolean
 }
 
 const HANDOVER_FORMATS: HandoverFormat[] = [
@@ -45,11 +46,20 @@ const HANDOVER_FORMATS: HandoverFormat[] = [
     desc: '알려진 버그·TODO·개선 필요 사항 파악',
     display: '이 프로젝트에서 알아둬야 할 이슈나 기술 부채 인수인계 해줘. TODO/FIXME, 알려진 버그, 리팩토링 필요한 부분, 성능 이슈, 테스트 부족한 부분 포함해서.',
     instruction: FORMAT_INSTRUCTION
+  },
+  {
+    id: 'changes',
+    icon: '📋',
+    title: '최근 변경 이력',
+    desc: '최근 커밋·변경 파일·개발 흐름 파악',
+    display: '이 프로젝트 최근에 어떤 변경이 있었는지 인수인계 해줘. 최근 커밋 내용, 어떤 파일들이 바뀌었는지, 어떤 기능이 추가·수정·삭제됐는지, 개발 흐름이 어떻게 됐는지 알려줘.',
+    instruction: FORMAT_INSTRUCTION,
+    includeGitHistory: true
   }
 ]
 
 interface Props {
-  onHandover: (display: string, instruction: string) => void
+  onHandover: (display: string, instruction: string, opts?: { includeGitHistory?: boolean }) => void
   onDirectQuestion: () => void
 }
 
@@ -101,7 +111,7 @@ export default function HandoverWelcome({ onHandover, onDirectQuestion }: Props)
         {HANDOVER_FORMATS.map((fmt) => (
           <button
             key={fmt.id}
-            onClick={() => onHandover(fmt.display, fmt.instruction)}
+            onClick={() => onHandover(fmt.display, fmt.instruction, { includeGitHistory: fmt.includeGitHistory })}
             className="flex flex-col gap-2 rounded-xl bg-slate-700/50 border border-slate-600/30 px-4 py-4 text-left transition hover:bg-slate-700 hover:border-slate-500/60"
           >
             <span className="text-2xl">{fmt.icon}</span>

@@ -49,6 +49,7 @@ class RAGService:
         question: str,
         chat_history: list[dict],
         n_results: int = 8,
+        git_context: str | None = None,
     ) -> AsyncIterator[str]:
         """RAG query with streaming response."""
         # 1. Embed the question
@@ -68,10 +69,17 @@ class RAGService:
             messages.append(ChatMessage(role=msg["role"], content=msg["content"]))
 
         # Add current question with context
-        user_content = (
-            f"프로젝트 코드에서 검색된 관련 내용:\n\n{context}\n\n"
-            f"질문: {question}"
-        )
+        if git_context:
+            user_content = (
+                f"{git_context}\n\n"
+                f"프로젝트 코드에서 검색된 관련 내용:\n\n{context}\n\n"
+                f"질문: {question}"
+            )
+        else:
+            user_content = (
+                f"프로젝트 코드에서 검색된 관련 내용:\n\n{context}\n\n"
+                f"질문: {question}"
+            )
         messages.append(ChatMessage(role="user", content=user_content))
 
         # 4. Stream response
