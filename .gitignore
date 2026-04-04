@@ -17,3 +17,6 @@ backend/.venv/
 # IDE
 .vscode/
 .idea/
+
+# Git Worktrees
+.worktrees/
